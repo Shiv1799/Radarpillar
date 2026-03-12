@@ -4,6 +4,10 @@ from typing import List, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Tuple
+
+import torch
+import torch.nn as nn
 
 
 def extract_pillar_tokens(spatial_features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -82,6 +86,10 @@ class PillarAttention(nn.Module):
       - a single token tensor: (N, C)
       - a list of per-batch token tensors: [(p_0, C), (p_1, C), ...]
         where p_i can vary per batch element.
+    Input shape:
+        X: (N, C)
+    Output shape:
+        (N, C)
     """
 
     def __init__(self, feature_dim: int):
@@ -90,40 +98,17 @@ class PillarAttention(nn.Module):
         self.q_proj = nn.Linear(feature_dim, feature_dim)
         self.k_proj = nn.Linear(feature_dim, feature_dim)
         self.v_proj = nn.Linear(feature_dim, feature_dim)
-        self.has_sdpa = hasattr(F, 'scaled_dot_product_attention')
 
-    def _forward_single(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 2:
             raise ValueError(f"PillarAttention expects input shape (N, C), got {tuple(x.shape)}")
-
-        if x.shape[0] == 0:
-            return x
 
         q = self.q_proj(x)  # (N, C)
         k = self.k_proj(x)  # (N, C)
         v = self.v_proj(x)  # (N, C)
 
-        if self.has_sdpa:
-            # Use memory-efficient SDPA path when available.
-            # [N, C] -> [1, 1, N, C]
-            q4 = q.unsqueeze(0).unsqueeze(0)
-            k4 = k.unsqueeze(0).unsqueeze(0)
-            v4 = v.unsqueeze(0).unsqueeze(0)
-            out = F.scaled_dot_product_attention(q4, k4, v4, dropout_p=0.0, is_causal=False)
-            return out.squeeze(0).squeeze(0)
-
-        # Manual fallback
         scale = 1.0 / math.sqrt(self.feature_dim)
         attn_logits = torch.matmul(q, k.transpose(0, 1)) * scale  # (N, N)
         attn = torch.softmax(attn_logits, dim=-1)  # (N, N)
         out = torch.matmul(attn, v)  # (N, C)
         return out
-
-    def forward(self, x: Union[torch.Tensor, List[torch.Tensor]]) -> Union[torch.Tensor, List[torch.Tensor]]:
-        if isinstance(x, list):
-            outputs: List[torch.Tensor] = []
-            for batch_tokens in x:
-                outputs.append(self._forward_single(batch_tokens))
-            return outputs
-
-        return self._forward_single(x)

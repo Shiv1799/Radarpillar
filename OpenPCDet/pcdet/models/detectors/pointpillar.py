@@ -18,7 +18,6 @@ class PointPillar(Detector3DTemplate):
                 spatial_features = batch_dict['spatial_features']
                 b, c, h, w = spatial_features.shape
                 print(f"spatial_features.shape = ({b}, {c}, {h}, {w})")
-                batch_dict['spatial_features'] = self.radar_pillar_attention_block(spatial_features)
 
         if self.training:
             loss, tb_dict, disp_dict = self.get_training_loss()

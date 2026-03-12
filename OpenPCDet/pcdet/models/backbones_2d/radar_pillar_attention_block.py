@@ -5,29 +5,23 @@ from .pillar_attention import PillarAttention, extract_pillar_tokens, scatter_pi
 
 
 class RadarPillarAttentionBlock(nn.Module):
-    """Radar pillar transformer block on sparse BEV pillar tokens.
+    """Complete radar pillar attention block.
 
-    Token pipeline:
-        X = X + MLP1(X)
-        X = X + PillarAttention(X)
-        X = X + MLP2(X)
+    Pipeline:
+        1) extract non-empty pillar tokens from BEV grid
+        2) apply PillarAttention on sparse tokens
+        3) scatter tokens back into dense BEV grid
 
-    The transformer operations are performed only on occupied pillar tokens.
+    Input:
+        spatial_features: (B, C, H, W)
+
+    Output:
+        spatial_features: (B, C, H, W)
     """
 
     def __init__(self, feature_dim: int):
         super().__init__()
-        self.mlp1 = nn.Sequential(
-            nn.Linear(feature_dim, 2 * feature_dim),
-            nn.ReLU(),
-            nn.Linear(2 * feature_dim, feature_dim),
-        )
         self.attention = PillarAttention(feature_dim)
-        self.mlp2 = nn.Sequential(
-            nn.Linear(feature_dim, 2 * feature_dim),
-            nn.ReLU(),
-            nn.Linear(2 * feature_dim, feature_dim),
-        )
 
     def forward(self, spatial_features: torch.Tensor) -> torch.Tensor:
         if spatial_features.ndim != 4:
@@ -40,9 +34,7 @@ class RadarPillarAttentionBlock(nn.Module):
         tokens, indices = extract_pillar_tokens(spatial_features)
 
         if tokens.numel() > 0:
-            tokens = tokens + self.mlp1(tokens)
-            tokens = tokens + self.attention(tokens)
-            tokens = tokens + self.mlp2(tokens)
+            tokens = self.attention(tokens)
 
         spatial_features = scatter_pillar_tokens(
             tokens=tokens,
