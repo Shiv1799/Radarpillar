@@ -1,10 +1,14 @@
 from .detector3d_template import Detector3DTemplate
+from ..backbones_2d.radar_pillar_attention_block import RadarPillarAttentionBlock
 
 
 class PointPillar(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
         super().__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
         self.module_list = self.build_networks()
+        self.radar_pillar_attention_block = RadarPillarAttentionBlock(
+            feature_dim=self.map_to_bev_module.num_bev_features
+        )
 
     def forward(self, batch_dict):
         for cur_module in self.module_list:

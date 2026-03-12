@@ -1,4 +1,9 @@
 import math
+from typing import List, Tuple, Union
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from typing import Tuple
 
 import torch
@@ -77,6 +82,10 @@ def scatter_pillar_tokens(
 class PillarAttention(nn.Module):
     """Self-attention block for sparse pillar tokens.
 
+    Supports:
+      - a single token tensor: (N, C)
+      - a list of per-batch token tensors: [(p_0, C), (p_1, C), ...]
+        where p_i can vary per batch element.
     Input shape:
         X: (N, C)
     Output shape:
