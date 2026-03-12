@@ -1,0 +1,49 @@
+# Use NVIDIA's CUDA 11.7.1 base image with Ubuntu 22.04
+FROM nvidia/cuda:11.7.1-devel-ubuntu22.04
+LABEL maintainer="Om Tiwari"
+
+# Set non-interactive mode for apt-get
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update && apt install -y --no-install-recommends git curl wget git zsh tmux vim g++
+
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    locales \
+    curl \
+    gnupg2 \
+    lsb-release \
+    software-properties-common \
+    && locale-gen en_US.UTF-8
+
+# Set locale environment variables
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+
+# =========> INSTALL OpenPCDet <=============
+RUN apt update && apt install -y python3-pip
+RUN pip install torch==2.0.0+cu117 torchvision==0.15.0+cu117 torchaudio==2.0.0+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
+
+#RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+RUN pip3 install spconv-cu117
+RUN apt update && apt install -y python3-setuptools
+# Install Python 3.10 and pip
+RUN apt-get update && apt-get install -y python3.10 python3-pip
+
+RUN apt-get update && apt-get install -y sudo
+
+RUN pip install numpy==1.23.5 llvmlite==0.40.1 numba==0.57.1 tensorboardX==2.6.2 protobuf>=3.20 packaging>=21 easydict==1.13 pyyaml==6.0.1 scikit-image==0.20.0 tqdm==4.66.1 SharedArray==3.2.4 opencv-python-headless==4.7.0.72 pyquaternion==0.9.9 imageio==2.31.1 tifffile==2023.7.10 PyWavelets==1.4.1 scipy==1.10.1
+
+RUN git clone https://github.com/open-mmlab/OpenPCDet.git
+
+WORKDIR /OpenPCDet
+
+ENV TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6"
+
+RUN python3 setup.py develop
+# Set the default shell to bash
+ENV SHELL=/bin/bash
+
+

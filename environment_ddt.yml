@@ -1,0 +1,9 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+
+name: openpcdet-env
+version: 6
+description: OpenPCDet distributed training environment 
+
+build:
+  path: .
+  dockerfile_path: Dockerfile_ddt

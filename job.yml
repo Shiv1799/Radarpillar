@@ -1,0 +1,90 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+
+experiment_name: openpcdet-radar-training
+display_name: openpcdet-preprocess-train
+
+code: .
+
+command: >
+  cd OpenPCDet &&
+  pip install -r requirements.txt &&
+  python3 setup.py develop &&
+  rm -rf data &&
+  mkdir data &&
+  ln -s ${{inputs.dataset}}/kitti data/kitti &&
+  ls data/kitti &&
+  python3 tools/train.py --cfg_file tools/cfgs/kitti_models/pointpillar.yaml --batch_size 16 --epochs 150 --extra_tag azure_run --use_amp --logger_iter_interval 100 --ckpt_save_interval 5 --max_ckpt_save_num 20 --wo_gpu_stat
+
+inputs:
+  dataset:
+    type: uri_folder
+    path: azureml://subscriptions/927defc6-a6d0-4e3b-9a63-c48acdf0b63d/resourcegroups/RG-Prod-AIPlatform-Dev-001/workspaces/MLW-Prod-AIPlatform-Dev-001/datastores/workspaceblobstore/paths/private_data/data/
+    # path: azureml://subscriptions/927defc6-a6d0-4e3b-9a63-c48acdf0b63d/resourcegroups/RG-Prod-AIPlatform-Dev-001/workspaces/MLW-Prod-AIPlatform-Dev-001/datastores/workspaceblobstore/paths/private_data/data/
+    mode: ro_mount
+
+outputs:
+  model_output:
+    type: uri_folder
+    mode: rw_mount
+
+  tensorboard_logs:
+    type: uri_folder
+    mode: rw_mount
+    
+services:
+  ssh:
+    type: ssh
+
+environment: azureml:openpcdet-env:1
+
+compute: azureml:gpu-cluster
+
+resources:
+  instance_count: 1
+
+tags:
+  framework: openpcdet
+  task: radar_detection
+
+# $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+
+# experiment_name: openpcdet-radar-training
+# display_name: openpcdet-training_single-gpu_epoch_80_new_code
+
+# code: .
+
+# command: >
+#   cd OpenPCDet &&
+#   pip install -r requirements.txt &&
+#   python3 setup.py develop &&
+#   rm -rf data &&
+#   mkdir data &&
+#   ln -s ${{inputs.dataset}}/kitti data/kitti &&
+#   python3 tools/train.py --launcher pytorch --cfg_file tools/cfgs/kitti_models/pointpillar.yaml --batch_size 4 --epochs 80 --workers 8 --extra_tag azure_ddp_run --use_amp --logger_iter_interval 100 --ckpt_save_interval 5 --max_ckpt_save_num 20 --wo_gpu_stat
+
+# inputs:
+#   dataset:
+#     type: uri_folder
+#     path: azureml://subscriptions/927defc6-a6d0-4e3b-9a63-c48acdf0b63d/resourcegroups/RG-Prod-AIPlatform-Dev-001/workspaces/MLW-Prod-AIPlatform-Dev-001/datastores/workspaceblobstore/paths/private_data/data/
+#     mode: ro_mount
+
+# outputs:
+#   model_output:
+#     type: uri_folder
+#     mode: rw_mount
+
+# environment: azureml:openpcdet-env:1
+
+# compute: azureml:gpu-cluster
+
+# resources:
+#   instance_count: 1
+
+# distribution:
+#   type: pytorch
+#   process_count_per_instance: 4
+
+# tags:
+#   framework: openpcdet
+#   training: single
+#   model: pointpillar

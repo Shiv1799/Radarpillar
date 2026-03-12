@@ -1,0 +1,9 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+
+name: openpcdet-env
+version: 1
+description: OpenPCDet training environment with CUDA 11.7, PyTorch 2.0 and spconv
+
+build:
+  path: .
+  dockerfile_path: Dockerfile
