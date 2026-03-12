@@ -10,6 +10,11 @@ class PointPillar(Detector3DTemplate):
         for cur_module in self.module_list:
             batch_dict = cur_module(batch_dict)
 
+            if cur_module.__class__.__name__ == 'PointPillarScatter':
+                spatial_features = batch_dict['spatial_features']
+                b, c, h, w = spatial_features.shape
+                print(f"spatial_features.shape = ({b}, {c}, {h}, {w})")
+
         if self.training:
             loss, tb_dict, disp_dict = self.get_training_loss()
 
